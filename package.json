@@ -1,6 +1,6 @@
-{   "name": "express-resource"
+{   "name": "express3-resource"
   , "description": "Resourceful routing for express"
-  , "version": "0.2.4"
+  , "version": "0.3.0alpha"
   , "homepage": "https://github.com/visionmedia/express-resource"
   , "author": "TJ Holowaychuk <tj@vision-media.ca>"
   , "contributors": [
