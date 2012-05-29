@@ -1,7 +1,7 @@
 {   "name": "express3-resource"
   , "description": "Resourceful routing for express3 alpha"
   , "version": "0.3.0alpha"
-  , "homepage": "https://github.com/ahizzle/express3-resource"
+  , "homepage": "https://github.com/ahizzle/express-resource"
   , "author": "TJ Holowaychuk <tj@vision-media.ca>"
   , "contributors": [
     { "name": "Daniel Gasienica", "email": "daniel@gasienica.ch" },
