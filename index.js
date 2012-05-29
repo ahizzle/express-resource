@@ -12,6 +12,7 @@
 
 var express = require('express')
   , lingo = require('lingo')
+  , debug = require('debug')('express3-resource')
   , en = lingo.en;
 
 /**
@@ -27,7 +28,7 @@ var orderedActions = [
   ,'update'  //  PUT  /:id
   ,'destroy' //  DEL  /:id
 ];
-  
+
 /**
  * Initialize a new `Resource` with the given `name` and `actions`.
  *
@@ -38,6 +39,9 @@ var orderedActions = [
  */
 
 var Resource = module.exports = function Resource(name, actions, app) {
+
+  debug('making new Resource: %s, %s', name, actions);
+
   this.name = name;
   this.app = app;
   this.routes = {};
@@ -68,7 +72,7 @@ var Resource = module.exports = function Resource(name, actions, app) {
 
 Resource.prototype.load = function(fn){
   var self = this
-    , id = this.id;
+  , id = this.id;
 
   this.loadFunction = fn;
   this.app.param(this.id, function(req, res, next){
@@ -80,7 +84,7 @@ Resource.prototype.load = function(fn){
       req[id] = obj;
       next();
     };
-    
+
     // Maintain backward compatibility
     if (2 == fn.length) {
       fn(req.params[id], callback);
@@ -117,7 +121,9 @@ Resource.prototype.__defineGetter__('defaultId', function(){
 
 Resource.prototype.map = function(method, path, fn){
   var self = this
-    , orig = path;
+  , orig = path;
+
+  debug('resource %s is mapping %s:%s', this, method, path);
 
   if (method instanceof Resource) return this.add(method);
   if ('function' == typeof path) fn = path, path = '';
@@ -150,7 +156,7 @@ Resource.prototype.map = function(method, path, fn){
   // ensure fn is an array of functions and inject req.format
   if (!(fn instanceof Array)) fn = [fn];
   fn.unshift(extract_format);
-  
+
   // apply the route
   this.app[method](route, fn);
 
@@ -182,7 +188,21 @@ Resource.prototype.add = function(resource){
     for (var key in routes) {
       route = routes[key];
       delete routes[key];
-      app[method](key).remove();
+
+      // currently no cleaner way (that i know) to remove from
+      // express3's router than by blowing through the array serially
+
+      // only look if anything even exists in routing table
+      for (var idx in app.routes[method]) {
+        var r = app.routes[method][idx];
+        debug('current route entry is %s', r);
+        if (r.path === key) {
+          app.routes[method].splice(idx, 1);
+          debug('removed %s from index %s of app.routes['+method+']');
+          break;
+        }
+      }
+
       resource.map(route.method, route.orig, route.fn);
     }
   }
@@ -240,18 +260,29 @@ express.Router.methods.concat(['del', 'all']).forEach(function(method){
 /**
  * Define a resource with the given `name` and `actions`.
  *
+ * This used to define the resource fn on the express app prototype's
+ * prototype, which appears to be a bad idea in express3... So just add
+ * it to express.application instead.
+ *
  * @param {String|Object} name or actions
  * @param {Object} actions
  * @return {Resource}
  * @api public
  */
+express.application.resource = function(name, actions, opts){
 
-express.application.__proto__.resource = function(name, actions, opts){
   var options = actions || {};
-  if ('object' == typeof name) actions = name, name = null;
-  if (options.id) actions.id = options.id;
+  if ('object' == typeof name) {
+    actions = name;
+    name = null;
+  }
+  if (options.id) {
+    actions.id = options.id;
+  }
   this.resources = this.resources || {};
-  if (!actions) return this.resources[name] || new Resource(name, null, this);
+  if (!actions) {
+    return this.resources[name] || new Resource(name, null, this);
+  }
   for (var key in opts) options[key] = opts[key];
   var res = this.resources[name] = new Resource(name, actions, this);
   return res;
