@@ -123,8 +123,6 @@ Resource.prototype.map = function(method, path, fn){
   var self = this
   , orig = path;
 
-  debug('resource %s is mapping %s:%s', this, method, path);
-
   if (method instanceof Resource) return this.add(method);
   if ('function' == typeof path) fn = path, path = '';
   if ('object' == typeof path) fn = path, path = '';
@@ -138,6 +136,8 @@ Resource.prototype.map = function(method, path, fn){
   if (this.name && path) route += '/';
   route += path;
   route += '.:format?';
+
+  debug('resource "%s" is mapping %s:%s to %s', this.name, method, path, route);
 
   // register the route so we may later remove it
   (this.routes[method] = this.routes[method] || {})[route] = {
@@ -193,12 +193,12 @@ Resource.prototype.add = function(resource){
       // express3's router than by blowing through the array serially
 
       // only look if anything even exists in routing table
+      debug('looking for previously defined %s:%s',method,key);
       for (var idx in app.routes[method]) {
         var r = app.routes[method][idx];
-        debug('current route entry is %s', r);
         if (r.path === key) {
           app.routes[method].splice(idx, 1);
-          debug('removed %s from index %s of app.routes['+method+']');
+          debug('removed %s from index %s of app.routes[%s]', r.path, idx, method);
           break;
         }
       }
@@ -219,6 +219,7 @@ Resource.prototype.add = function(resource){
  */
 
 Resource.prototype.mapDefaultAction = function(key, fn){
+  debug('mapping default action for %s',key);
   switch (key) {
     case 'index':
       this.get('/', fn);
